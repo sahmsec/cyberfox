@@ -1,46 +1,46 @@
 # aws-install.ps1
 
-# Requires -Version 5.1
 [CmdletBinding()]
 param()
 
 $repoBase = "https://raw.githubusercontent.com/sahmsec/Cyberfox/main"
 $batUrl = "$repoBase/aws-install.bat"
 
-# Get Desktop path
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS"
 
-# Create AWS folder if it doesn't exist
 if (-not (Test-Path -Path $awsFolder -PathType Container)) {
     New-Item -Path $awsFolder -ItemType Directory | Out-Null
-    Write-Host "Created AWS folder: $awsFolder"
-} else {
-    Write-Host "AWS folder exists: $awsFolder"
 }
 
-# Define path for batch file inside AWS folder
-$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install.bat"
+$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
 
 try {
-    # Use TLS 1.2+
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    Write-Host "Downloading batch file to $batFile ..."
+    $oldProgressPreference = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+
+    Write-Host "Downloading installation batch file to $awsFolder ..." -ForegroundColor Cyan
     Invoke-WebRequest -Uri $batUrl -UseBasicParsing -OutFile $batFile -ErrorAction Stop
 
+    $ProgressPreference = $oldProgressPreference
+
     if (-not (Test-Path -Path $batFile)) {
-        throw "Failed to download batch file."
+        throw "Download failed: batch file not found at $batFile"
     }
-    Write-Host "Batch file downloaded successfully."
 
-    Write-Host "Launching batch file elevated..."
+    Write-Host "`nDownloaded to: $batFile" -ForegroundColor Cyan
+    $hash = Get-FileHash $batFile -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Write-Host "SHA256: $hash" -ForegroundColor Cyan
+
+    Write-Host "Starting secure installation..." -ForegroundColor Green
+
+    # Launch batch file elevated and immediately exit PowerShell
     Start-Process -FilePath $batFile -Verb RunAs
-
-    # Exit immediately so only one console window remains
     exit
 
 } catch {
-    Write-Host "Error: $_"
+    Write-Host "`n[ERROR] Installation failed: $_" -ForegroundColor Red
     exit 1
 }
