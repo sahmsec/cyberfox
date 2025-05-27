@@ -1,9 +1,17 @@
 # aws-install.ps1
 
-# --- Auto-elevate script if not running as Administrator ---
+# --- Auto-elevate script if not running as Administrator (improved) ---
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
     Write-Host "Elevating script to run as Administrator..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    if ($MyInvocation.UnboundArguments) {
+        $argsEscaped = $MyInvocation.UnboundArguments | ForEach-Object { "`"$_`"" }
+        $arguments += " " + ($argsEscaped -join " ")
+    }
+
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", $arguments -Verb RunAs
+
     exit
 }
 
@@ -61,7 +69,6 @@ if (-not $winrarPath) {
 }
 Write-Host "Found WinRAR at: $winrarPath"
 
-# Create AWS folder if needed
 if (-Not (Test-Path $awsFolder)) {
     New-Item -ItemType Directory -Path $awsFolder | Out-Null
     Write-Host "Created AWS folder: $awsFolder"
@@ -69,7 +76,6 @@ if (-Not (Test-Path $awsFolder)) {
     Write-Host "AWS folder found: $awsFolder"
 }
 
-# Create Cyberfox Portable folder if needed
 if (-Not (Test-Path $cyberfoxPortableFolder)) {
     New-Item -ItemType Directory -Path $cyberfoxPortableFolder | Out-Null
     Write-Host "Created Cyberfox Portable folder: $cyberfoxPortableFolder"
@@ -77,7 +83,6 @@ if (-Not (Test-Path $cyberfoxPortableFolder)) {
     Write-Host "Cyberfox Portable folder found: $cyberfoxPortableFolder"
 }
 
-# Add Defender exclusion
 try {
     $existingExclusions = Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
     if ($existingExclusions -notcontains $cyberfoxPortableFolder) {
@@ -90,7 +95,6 @@ try {
     Write-Warning "Failed to add Defender exclusion. Please ensure you run as Administrator."
 }
 
-# Download zip file
 Write-Host "Downloading zip..."
 try {
     Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
@@ -101,7 +105,6 @@ try {
     exit 1
 }
 
-# Extract zip using WinRAR
 Write-Host "Extracting zip with password..."
 $extractArgs = @(
     "x",
@@ -122,20 +125,12 @@ if ($proc.ExitCode -eq 0) {
     exit 1
 }
 
-# Delete the zip file
 Remove-Item $zipFile
 Write-Host "Deleted zip file."
 
 Write-Host "All done! Files extracted to $cyberfoxPortableFolder"
 
-# Open the extracted folder in Explorer
 Start-Process explorer.exe $cyberfoxPortableFolder
 
-# Pause so user can see messages before exit
 Write-Host "Press any key to exit..."
 $x = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-
-# Close PowerShell window if running in ConsoleHost
-if ($host.Name -eq 'ConsoleHost') {
-    exit
-}
