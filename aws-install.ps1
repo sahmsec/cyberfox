@@ -1,11 +1,9 @@
-# aws-install.ps1
-# Checks/creates AWS folder on Desktop, downloads password-protected ZIP from GitHub,
-# extracts it using WinRAR CLI with password 'aws', then deletes the ZIP.
-
+# Variables
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $awsFolder = Join-Path $desktopPath "AWS"
+$cyberfoxPortableFolder = Join-Path $awsFolder "Cyberfox Portable"
 $url = "https://github.com/sahmsec/Cyberfox/releases/download/v1.0/CyberfoxPortable.zip"
-$zipFile = Join-Path $awsFolder "CyberfoxPortable.zip"
+$zipFile = Join-Path $cyberfoxPortableFolder "CyberfoxPortable.zip"
 $password = "aws"
 
 function Get-WinRARPath {
@@ -50,13 +48,23 @@ if (-not $winrarPath) {
 }
 Write-Host "Found WinRAR at: $winrarPath"
 
+# Check or create AWS folder
 if (-Not (Test-Path $awsFolder)) {
     New-Item -ItemType Directory -Path $awsFolder | Out-Null
-    Write-Host "Created folder: $awsFolder"
+    Write-Host "Created AWS folder: $awsFolder"
 } else {
-    Write-Host "Folder already exists: $awsFolder"
+    Write-Host "AWS folder found: $awsFolder"
 }
 
+# Inside AWS, check or create Cyberfox Portable folder
+if (-Not (Test-Path $cyberfoxPortableFolder)) {
+    New-Item -ItemType Directory -Path $cyberfoxPortableFolder | Out-Null
+    Write-Host "Created Cyberfox Portable folder: $cyberfoxPortableFolder"
+} else {
+    Write-Host "Cyberfox Portable folder found: $cyberfoxPortableFolder"
+}
+
+# Download the zip into Cyberfox Portable folder
 Write-Host "Downloading zip..."
 try {
     Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
@@ -66,15 +74,17 @@ try {
     exit 1
 }
 
+# Extract using WinRAR with password
 Write-Host "Extracting zip with password..."
 $extractArgs = @(
     "x",
     "-p$password",
     "-y",
     "`"$zipFile`"",
-    "`"$awsFolder`""
+    "`"$cyberfoxPortableFolder`""
 )
 $proc = Start-Process -FilePath $winrarPath -ArgumentList $extractArgs -Wait -PassThru
+
 if ($proc.ExitCode -eq 0) {
     Write-Host "Extraction successful."
 } elseif ($proc.ExitCode -eq 1) {
@@ -84,7 +94,8 @@ if ($proc.ExitCode -eq 0) {
     exit 1
 }
 
+# Delete the zip file
 Remove-Item $zipFile
 Write-Host "Deleted zip file."
 
-Write-Host "All done! Files extracted to $awsFolder"
+Write-Host "All done! Files extracted to $cyberfoxPortableFolder"
