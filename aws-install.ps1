@@ -7,7 +7,7 @@ if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-# --- Script Variables ---
+# --- Variables ---
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $awsFolder = Join-Path $desktopPath "AWS"
 $cyberfoxPortableFolder = Join-Path $awsFolder "Cyberfox Portable"
@@ -56,6 +56,7 @@ function Get-WinRARPath {
 $winrarPath = Get-WinRARPath
 if (-not $winrarPath) {
     Write-Host "WinRAR not found. Please install it from https://www.win-rar.com/ and rerun this script." -ForegroundColor Red
+    Pause
     exit 1
 }
 Write-Host "Found WinRAR at: $winrarPath"
@@ -96,6 +97,7 @@ try {
     Write-Host "Download complete."
 } catch {
     Write-Host "Download failed: $_" -ForegroundColor Red
+    Pause
     exit 1
 }
 
@@ -116,6 +118,7 @@ if ($proc.ExitCode -eq 0) {
     Write-Host "Extraction completed with warnings."
 } else {
     Write-Host "Extraction failed with exit code $($proc.ExitCode)." -ForegroundColor Red
+    Pause
     exit 1
 }
 
@@ -128,8 +131,11 @@ Write-Host "All done! Files extracted to $cyberfoxPortableFolder"
 # Open the extracted folder in Explorer
 Start-Process explorer.exe $cyberfoxPortableFolder
 
+# Pause so user can see messages before exit
+Write-Host "Press any key to exit..."
+$x = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
 # Close PowerShell window if running in ConsoleHost
 if ($host.Name -eq 'ConsoleHost') {
-    Start-Sleep -Seconds 1
     exit
 }
