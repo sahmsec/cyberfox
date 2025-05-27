@@ -1,3 +1,4 @@
 # Cyberfox
 ```powershell
-irm https://raw.githubusercontent.com/sahmsec/Tools/main/Cyberfox/aws-install.ps1 | iex
+irm https://raw.githubusercontent.com/sahmsec/Cyberfox/main/aws-install.ps1 | iex
+
