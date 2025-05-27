@@ -7,48 +7,41 @@ $batUrl = "$repoBase/aws-install.bat"
 
 # Get desktop path dynamically
 $desktopPath = [Environment]::GetFolderPath("Desktop")
+$awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS"
 
-# Define AWS\Cyberfox Portable folder path on desktop
-$awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS\Cyberfox Portable"
-
-# Create folder if not exists
+# Create AWS folder if not exists
 if (-not (Test-Path -Path $awsFolder -PathType Container)) {
     New-Item -Path $awsFolder -ItemType Directory | Out-Null
+    Write-Host "Created AWS folder: $awsFolder"
+} else {
+    Write-Host "AWS folder exists: $awsFolder"
 }
 
-# Define full path for the batch file inside the folder with timestamp
-$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
+# Define path for the batch file inside AWS folder
+$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install.bat"
 
 try {
     # Use TLS 1.2+
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    # Suppress progress display
-    $oldProgressPreference = $ProgressPreference
-    $ProgressPreference = 'SilentlyContinue'
-
-    Write-Host "Downloading installation batch file to $awsFolder ..." -ForegroundColor Cyan
+    Write-Host "Downloading batch file to $batFile ..."
     Invoke-WebRequest -Uri $batUrl -UseBasicParsing -OutFile $batFile -ErrorAction Stop
 
-    # Restore progress preference
-    $ProgressPreference = $oldProgressPreference
-
-    # Confirm file download
     if (-not (Test-Path -Path $batFile)) {
-        throw "Download failed: file not found at $batFile"
+        throw "Failed to download batch file."
     }
+    Write-Host "Batch file downloaded successfully."
 
-    Write-Host "`nDownloaded to: $batFile" -ForegroundColor Cyan
-    $hash = Get-FileHash $batFile -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-    Write-Host "SHA256: $hash" -ForegroundColor Cyan
+    Write-Host "Launching batch file elevated..."
+    $proc = Start-Process -FilePath $batFile -Verb RunAs -Wait -PassThru
 
-    Write-Host "Starting secure installation..." -ForegroundColor Green
+    Write-Host "Batch execution finished with exit code $($proc.ExitCode)."
 
-    # Launch batch file elevated and immediately exit PowerShell
-    Start-Process -FilePath $batFile -Verb RunAs
-    exit
+    # Delete batch file after execution
+    Remove-Item -Path $batFile -Force
+    Write-Host "Deleted batch file: $batFile"
 
 } catch {
-    Write-Host "`n[ERROR] Installation failed: $_" -ForegroundColor Red
+    Write-Host "Error: $_"
     exit 1
 }
