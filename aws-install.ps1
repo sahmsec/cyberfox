@@ -3,7 +3,7 @@
 param()
 
 $repoBase = "https://raw.githubusercontent.com/sahmsec/Cyberfox/main"
-$batUrl = "$repoBase/aws-install.bat"
+$batUrl = "$repoBase/aws-install.bat"  # This file contains Base64 text now
 
 # Get desktop path dynamically
 $desktopPath = [Environment]::GetFolderPath("Desktop")
@@ -27,20 +27,23 @@ try {
     $oldProgressPreference = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
 
-    Write-Host "Downloading installation package to $awsFolder ..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $batUrl -UseBasicParsing -OutFile $batFile -ErrorAction Stop
+    Write-Host "Downloading Base64-encoded batch file to $awsFolder ..." -ForegroundColor Cyan
+
+    # Download Base64 content from GitHub
+    $base64Content = Invoke-WebRequest -Uri $batUrl -UseBasicParsing -ErrorAction Stop | Select-Object -ExpandProperty Content
 
     # Restore progress preference
     $ProgressPreference = $oldProgressPreference
 
-    # Confirm file download
-    if (-not (Test-Path -Path $batFile)) {
-        throw "Download failed: file not found at $batFile"
-    }
+    Write-Host "Decoding and saving batch file..." -ForegroundColor Cyan
 
-    Write-Host "`nDownloaded to: $batFile" -ForegroundColor Cyan
-    $hash = Get-FileHash $batFile -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-    Write-Host "SHA256: $hash" -ForegroundColor Cyan
+    # Decode Base64 content to bytes
+    $bytes = [Convert]::FromBase64String($base64Content)
+
+    # Save decoded batch file to disk
+    [IO.File]::WriteAllBytes($batFile, $bytes)
+
+    Write-Host "`nSaved decoded batch file to: $batFile" -ForegroundColor Cyan
 
     Write-Host "Starting secure installation..." -ForegroundColor Green
 
