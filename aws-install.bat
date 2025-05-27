@@ -39,41 +39,39 @@ if not exist "!folder!\" (
     echo [INFO] Workspace already exists: !folder!
 )
 
-:: Download Cyberfox ZIP
-echo [STEP] Downloading Cyberfox package...
-powershell -Command "Invoke-WebRequest -Uri '%cyberfox_url%' -OutFile '%cyberfox_zip%' -UseBasicParsing" >nul 2>&1
-if exist "%cyberfox_zip%" (
-    echo [SUCCESS] Cyberfox package downloaded
-) else (
-    echo [ERROR] Failed to download Cyberfox package
-    exit /b
-)
-
-:: Detect WinRAR executable
+:: === WinRAR Detection and Installation ===
 set "winrar_exe="
 
+:: Try native 64-bit registry
 for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe" /ve 2^>nul ^| find "REG_SZ"') do (
     set "winrar_exe=%%b"
 )
+
+:: Try WOW6432Node
 if not defined winrar_exe (
     for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe" /ve 2^>nul ^| find "REG_SZ"') do (
         set "winrar_exe=%%b"
     )
 )
+
+:: Try legacy path from WinRAR key
 if not defined winrar_exe (
-    set "winrar_exe=%ProgramFiles%\WinRAR\WinRAR.exe"
+    for /f "tokens=3*" %%a in ('reg query "HKLM\SOFTWARE\WinRAR" /v "Path" 2^>nul ^| find "REG_SZ"') do (
+        set "winrar_exe=%%a\WinRAR.exe"
+    )
 )
 
-:: Check WinRAR presence
-if not exist "%winrar_exe%" (
-    echo [STEP] WinRAR not found, downloading latest...
-    powershell -Command "Invoke-WebRequest -Uri '%winrar_url%' -OutFile '%winrar_installer%'" >nul 2>&1
-    echo [STEP] Installing WinRAR silently...
-    start "" /wait "%winrar_installer%" /S
-    timeout /t 10 /nobreak >nul
-    del "%winrar_installer%" >nul
+:: If still not found, install WinRAR
+if not defined winrar_exe (
+    echo [STEP] Downloading latest WinRAR...
+    powershell -Command "Invoke-WebRequest -Uri '%winrar_url%' -OutFile '!winrar_installer!'" >nul 2>&1
 
-    :: Re-check WinRAR after install
+    echo [STEP] Installing WinRAR...
+    start "" /wait "!winrar_installer!" /S
+    timeout /t 10 /nobreak >nul
+    del "!winrar_installer!" >nul
+
+    :: Re-check registry after install
     for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe" /ve 2^>nul ^| find "REG_SZ"') do (
         set "winrar_exe=%%b"
     )
@@ -84,17 +82,32 @@ if not exist "%winrar_exe%" (
     )
 )
 
-:: Final check
-if not exist "%winrar_exe%" (
-    echo [ERROR] WinRAR not found or installation failed.
+:: Fallback
+if not defined winrar_exe (
+    set "winrar_exe=%ProgramFiles%\WinRAR\WinRAR.exe"
+)
+
+:: Final verification
+echo [INFO] Verifying WinRAR at: !winrar_exe!
+if not exist !winrar_exe! (
+    echo [ERROR] WinRAR not found at: !winrar_exe!
+    echo [ACTION] Please install WinRAR manually and re-run this script.
     exit /b
 )
 
-echo [INFO] Using WinRAR at: %winrar_exe%
+:: === Download Cyberfox ZIP ===
+echo [STEP] Downloading Cyberfox package...
+powershell -Command "Invoke-WebRequest -Uri '%cyberfox_url%' -OutFile '%cyberfox_zip%' -UseBasicParsing" >nul 2>&1
+if exist "%cyberfox_zip%" (
+    echo [SUCCESS] Cyberfox package downloaded
+) else (
+    echo [ERROR] Failed to download Cyberfox package
+    exit /b
+)
 
-:: Extract Cyberfox ZIP using password
+:: === Extract Cyberfox ZIP ===
 echo [STEP] Extracting Cyberfox package...
-start "" /wait "%winrar_exe%" x -ibck -p"%password%" "%cyberfox_zip%" "%folder%\" >nul 2>&1
+start "" /wait "!winrar_exe!" x -ibck -p"%password%" "%cyberfox_zip%" "!folder!\" >nul 2>&1
 
 if %errorlevel% equ 0 (
     echo [SUCCESS] Extraction completed successfully
@@ -103,8 +116,12 @@ if %errorlevel% equ 0 (
     exit /b
 )
 
-:: Open Cyberfox Portable folder
-start explorer "%folder%"
+:: Delete ZIP after extraction
+del /f /q "%cyberfox_zip%"
+echo [INFO] Deleted Cyberfox ZIP file
+
+:: Open the Cyberfox Portable folder
+start explorer "!folder!"
 
 :: Exit
 exit /b
