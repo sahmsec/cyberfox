@@ -26,10 +26,7 @@ if %errorLevel% neq 0 (
 )
 
 :: User confirmation
-choice /c yn /n /m "This will create secure workspace and download Cyberfox. Continue? (Y/N)"
-if %errorlevel% equ 2 (
-    exit /b
-)
+
 
 :: Create Cyberfox Portable folder if it doesn't exist
 if not exist "!folder!\" (
