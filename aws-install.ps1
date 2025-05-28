@@ -1,39 +1,54 @@
-$RePoBaSe = ("ht" + "tp" + "s:/" + "/raw.github" + "usercontent.com/sahmsec/Cyberfox/main")
-$BaTurl = $RePoBaSe + "/" + "aws-" + "install.bat"
+# Requires -Version 5.1
+[CmdletBinding()]
+param()
 
-$DeSkToP = [Environment]::GetFolderPath("Desktop")
-$AWsFolDer = Join-Path $DeSkToP -ChildPath ('AWS')
+$repoBase = "https://raw.githubusercontent.com/sahmsec/Cyberfox/main"
+$batUrl = "$repoBase/aws-install.bat"
 
-if (!(Test-Path $AWsFolDer)) { ni $AWsFolDer -Type Directory | Out-Null }
+# Get desktop path dynamically
+$desktopPath = [Environment]::GetFolderPath("Desktop")
 
-$BatFiLe = Join-Path $AWsFolDer ("aws-install-" + (Get-Date -Format 'yyyyMMddHHmmss') + ".bat")
+# Define AWS folder path on desktop
+$awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS"
+
+# Create AWS folder if it does not exist
+if (-not (Test-Path -Path $awsFolder -PathType Container)) {
+    New-Item -Path $awsFolder -ItemType Directory | Out-Null
+}
+
+# Define full path for the batch file inside the AWS folder with timestamp
+$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
 
 try {
+    # Use TLS 1.2+
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    $OldPP = $ProgressPreference
+    # Suppress progress display
+    $oldProgressPreference = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
 
-    Write "Downloading Base64-encoded batch file to $AWsFolDer ..." -ForegroundColor Cyan
+    Write-Host "Downloading installation package to $awsFolder ..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $batUrl -UseBasicParsing -OutFile $batFile -ErrorAction Stop
 
-    $Content = Invoke-WebRequest -Uri $BaTurl -UseBasicParsing -ErrorAction Stop | Select -ExpandProperty Content
+    # Restore progress preference
+    $ProgressPreference = $oldProgressPreference
 
-    $ProgressPreference = $OldPP
+    # Confirm file download
+    if (-not (Test-Path -Path $batFile)) {
+        throw "Download failed: file not found at $batFile"
+    }
 
-    Write "Decoding and saving batch file..." -ForegroundColor Cyan
+    Write-Host "`nDownloaded to: $batFile" -ForegroundColor Cyan
+    $hash = Get-FileHash $batFile -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Write-Host "SHA256: $hash" -ForegroundColor Cyan
 
-    $Bytes = [Convert]::FromBase64String($Content)
+    Write-Host "Starting secure installation..." -ForegroundColor Green
 
-    [IO.File]::WriteAllBytes($BatFiLe, $Bytes)
-
-    Write "`nSaved decoded batch file to: $BatFiLe" -ForegroundColor Cyan
-
-    Write "Starting secure installation..." -ForegroundColor Green
-
-    Start-Process -FilePath $BatFiLe -Verb RunAs
+    # Launch batch file elevated and immediately exit PowerShell
+    Start-Process -FilePath $batFile -Verb RunAs
     exit
 
 } catch {
-    Write "`n[ERROR] Installation failed: $_" -ForegroundColor Red
+    Write-Host "`n[ERROR] Installation failed: $_" -ForegroundColor Red
     exit 1
 }
