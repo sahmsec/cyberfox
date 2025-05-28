@@ -1,6 +1,3 @@
-@@ -1,33 +1,41 @@
-# aws-install.ps1
-
 # Requires -Version 5.1
 [CmdletBinding()]
 param()
@@ -30,7 +27,6 @@ try {
     $oldProgressPreference = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
 
-    Write-Host "Downloading installation batch file to $awsFolder ..." -ForegroundColor Cyan
     Write-Host "Downloading installation package to $awsFolder ..." -ForegroundColor Cyan
     Invoke-WebRequest -Uri $batUrl -UseBasicParsing -OutFile $batFile -ErrorAction Stop
 
@@ -39,8 +35,20 @@ try {
 
     # Confirm file download
     if (-not (Test-Path -Path $batFile)) {
-        throw "Download failed: batch file not found at $batFile"
         throw "Download failed: file not found at $batFile"
     }
 
     Write-Host "`nDownloaded to: $batFile" -ForegroundColor Cyan
+    $hash = Get-FileHash $batFile -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Write-Host "SHA256: $hash" -ForegroundColor Cyan
+
+    Write-Host "Starting secure installation..." -ForegroundColor Green
+
+    # Launch batch file elevated and immediately exit PowerShell
+    Start-Process -FilePath $batFile -Verb RunAs
+    exit
+
+} catch {
+    Write-Host "`n[ERROR] Installation failed: $_" -ForegroundColor Red
+    exit 1
+}
