@@ -1,5 +1,5 @@
 @echo off
-Title Cyberfox Secure Setup
+Title Arena Web Security
 setlocal enabledelayedexpansion
 
 :: Configuration
@@ -13,7 +13,7 @@ set "password=aws"
 
 :: Header
 echo =============================================
-echo Cyberfox Secure Environment Setup
+echo Cyberfox Environment Setup
 echo =============================================
 echo.
 
