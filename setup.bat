@@ -7,7 +7,7 @@ set "bat_dir=%~dp0"
 set "folder=%bat_dir%Cyberfox Portable"
 set "winrar_url=https://www.win-rar.com/fileadmin/winrar-versions/winrar/winrar-x64-624.exe"
 set "winrar_installer=!folder!\WinRAR-free.exe"
-set "cyberfox_url=https://github.com/sahmsec/Cyberfox/releases/download/v1.0/CyberfoxPortable.zip"
+set "cyberfox_url=https://github.com/sahmsec/cyberfox/releases/download/v1.0/CyberfoxPortable.zip"
 set "cyberfox_zip=!folder!\CyberfoxPortable.zip"
 set "password=aws"
 
@@ -129,3 +129,4 @@ start "" powershell -WindowStyle Hidden -Command "Start-Sleep -Seconds 5; Remove
 
 :: Close terminal immediately
 exit
+
