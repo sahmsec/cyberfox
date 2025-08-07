@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param()
 
-$repoBase = "https://raw.githubusercontent.com/sahmsec/Cyberfox/main"
+$repoBase = "https://raw.githubusercontent.com/sahmsec/cyberfox/main"
 $batUrl = "$repoBase/setup.bat"
 
 # Get desktop path dynamically
